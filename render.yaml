@@ -1,8 +1,7 @@
 services:
   - type: web
     name: trip-expense-splitter
-    runtime: node
-    plan: free
+    env: static
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     routes:
