@@ -53,27 +53,39 @@ export function TripDetail() {
     if (!tripId) return
 
     try {
-      const [tripRes, membersRes, expensesRes, splitsRes] = await Promise.all([
+      const [tripRes, membersRes, expensesRes] = await Promise.all([
         supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
         supabase.from('members').select('*').eq('trip_id', tripId).order('created_at'),
         supabase.from('expenses').select('*').eq('trip_id', tripId).order('date', { ascending: false }),
-        supabase.from('expense_splits').select('*'),
       ])
 
       if (tripRes.error) throw tripRes.error
       if (membersRes.error) throw membersRes.error
       if (expensesRes.error) throw expensesRes.error
-      if (splitsRes.error) throw splitsRes.error
 
       if (!tripRes.data) {
         navigate('/trips')
         return
       }
 
+      const expenses = expensesRes.data || []
+      const expenseIds = expenses.map(e => e.id)
+
+      let splits: ExpenseSplit[] = []
+      if (expenseIds.length > 0) {
+        const { data: splitsData, error: splitsError } = await supabase
+          .from('expense_splits')
+          .select('*')
+          .in('expense_id', expenseIds)
+
+        if (splitsError) throw splitsError
+        splits = splitsData || []
+      }
+
       setTripName(tripRes.data.name)
       setMembers(membersRes.data || [])
-      setExpenses(expensesRes.data || [])
-      setSplits(splitsRes.data || [])
+      setExpenses(expenses)
+      setSplits(splits)
     } catch (err) {
       console.error('Error loading trip data:', err)
     } finally {
