@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseConfigured } from '../lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -17,6 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!supabaseConfigured) {
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null)
@@ -57,6 +62,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+  }
+
+  if (!supabaseConfigured) {
+    return (
+      <div className="container" style={{ marginTop: '2rem' }}>
+        <div className="card">
+          <h2 style={{ color: '#dc2626', marginBottom: '1rem' }}>Configuration Error</h2>
+          <p style={{ marginBottom: '1rem' }}>
+            Supabase environment variables are not configured. Please set the following environment variables in your Render dashboard:
+          </p>
+          <ul style={{ marginLeft: '1.5rem', marginBottom: '1rem' }}>
+            <li><code>VITE_SUPABASE_URL</code></li>
+            <li><code>VITE_SUPABASE_ANON_KEY</code></li>
+          </ul>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            After setting the environment variables, redeploy your application.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
